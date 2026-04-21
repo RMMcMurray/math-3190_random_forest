@@ -1,104 +1,57 @@
 ---
 title: "Random Forests"
+author:
+  - "Ryan McMurray"
+  - "Melanie Jensen"
+  - "Lucca"
+
 format:
   pdf:
     documentclass: article
     papersize: letter
     geometry: margin=1in
     fontsize: 11pt
+    linestretch: 2
+
+header-includes:
+  - \setlength{\parindent}{15pt}
+  - \setlength{\parskip}{0pt}
 ---
 
 # Mathematical Foundation and Assumptions
 
-## Introduction
-Random forests are an ensemble learning method that combines many decision trees to produce a single predictive model. They are used for both regression and classification tasks and are particularly effective when relationships in the data are nonlinear or involve complex interactions. The key idea is to reduce variance by averaging many decorrelated models. A random forest is built from decision trees. Each tree partitions the feature space into regions and makes predictions based on those regions.
+Random forests are an ensemble learning method that construct a large collection of decision trees and aggregate their predictions to produce a single model. They are widely used for both regression and classification problems, particularly in settings where the relationship between predictors and the response is nonlinear or involves complex interactions. The central motivation for random forests is the reduction of variance: while individual decision trees tend to be highly variable, averaging many such trees—provided they are sufficiently decorrelated—yields a more stable and accurate predictor.
 
-### Regression Trees
-For regression, a tree partitions the feature space into regions \( R_1, R_2, \dots, R_J \), and predicts:
-
+The construction of a random forest begins with decision trees, which partition the feature space into a set of disjoint regions and assign predictions based on those regions. In the regression setting, a tree partitions the predictor space into regions
+$R_1, \dots, R_J$
+and defines a piecewise constant function of the form
 $\hat{f}(x) = \sum_{j=1}^{J} c_j \mathbf{1}(x \in R_j)$
+, where
+$c_j$ 
+is typically the mean of the observed responses within region 
+$R_j$
+. These regions are chosen by recursively splitting the data to minimize the residual sum of squares. In the classification setting, predictions are instead made by majority vote within each region, and splits are chosen to reduce impurity, commonly measured by the Gini index or entropy. These criteria quantify how mixed the class labels are within a node, encouraging splits that produce more homogeneous subsets.
 
-where \( c_j \) is typically the mean of the response values in region \( R_j \). Splits are chosen to minimize residual sum of squares (RSS):
+A random forest extends this framework by introducing randomness into the tree-building process. Specifically, each tree is trained on a bootstrap sample of the data, meaning that observations are sampled with replacement to form a new dataset of the same size. In addition, at each split within a tree, only a random subset of the available predictors is considered. This second source of randomness is critical, as it reduces the correlation between individual trees. Without it, trees built on bootstrap samples alone tend to be similar, particularly when there are strong predictors, limiting the effectiveness of averaging.
 
-$\sum_{i: x_i \in R_1} (y_i - \bar{y}_{R_1})^2 + \sum_{i: x_i \in R_2} (y_i - \bar{y}_{R_2})^2$
-
-### Classification Trees
-For classification, trees predict class labels using majority vote within each region. Splits are chosen to reduce impurity, commonly using the Gini Index or Entropy
-
-$G = \sum_{k=1}^{K} p_k (1 - p_k)$
-
-$H = -\sum_{k=1}^{K} p_k \log p_k$
-
-where \( p_k \) is the proportion of class \( k \) in a node.
-
-## Random Forest Algorithm
-
-A random forest builds \( B \) trees using two sources of randomness:
-
-### 1. Bootstrap Sampling
-For each tree \( b = 1, \dots, B \), draw a bootstrap sample from the data.
-
-### 2. Random Feature Selection
-At each split, select a random subset of \( m \) features with \( m < p \) and choose the best split only among those features.
-
-## Prediction
-
-### Regression
-
+Predictions from a random forest are obtained by aggregating the outputs of the individual trees. For regression, this is done by averaging,
 $\hat{f}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)$
+, while for classification, the predicted class is determined by majority vote across the trees. The theoretical benefit of this approach can be understood through the variance of the ensemble. If each tree has variance
+$\sigma^2$ 
+and pairwise correlation 
+$\rho$
+, then the variance of the averaged predictor is approximately
+$\text{Var}(\hat{f}) \approx \rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2$ 
+. This expression highlights that increasing the number of trees reduces variance, but the reduction is most effective when the trees are weakly correlated. The random feature selection mechanism plays a key role in achieving this decorrelation.
 
-### Classification
+Although random forests are often described as making few assumptions, they do rely on several important conditions. The training observations are assumed to be independent and identically distributed, and the model implicitly assumes that the distribution of the training data matches that of future observations. Furthermore, the predictors must contain sufficient information about the response for meaningful patterns to be learned. Like other tree-based methods, random forests are also limited in their ability to extrapolate beyond the range of the observed data, as predictions are constructed from averages of observed outcomes.
 
-$\hat{C}(x) = \text{mode}\{T_1(x), T_2(x), \dots, T_B(x)\}$
+An additional practical advantage of random forests is the availability of out-of-bag error estimation. Because each tree is trained on a bootstrap sample, approximately one-third of the observations are omitted from the training set for that tree. These unused observations can be used to evaluate predictive performance by averaging predictions over the subset of trees in which the observation was not included. This provides an efficient and nearly unbiased estimate of generalization error without the need for a separate validation set.
 
-## Why Random Forests Work (Bias-Variance Tradeoff)
+Despite their strong empirical performance, random forests are not without limitations. Their ensemble nature makes them less interpretable than simpler models, and commonly used measures of feature importance can be difficult to interpret or biased in the presence of correlated predictors. Additionally, training a large number of trees can be computationally demanding, particularly for large datasets or high-dimensional problems. Random forests may also struggle when many predictors are irrelevant, and, as noted earlier, they do not extrapolate well beyond the range of the training data.
 
-Let each tree have variance \( \sigma^2 \) and pairwise correlation \( \rho \). Then the variance of the ensemble is approximately:
+In summary, random forests build upon the strengths of decision trees while addressing their primary weakness—high variance—through averaging and randomization. By combining bootstrap sampling with random feature selection, they produce a flexible and robust modeling approach that performs well across a wide range of regression and classification problems.
 
-$\text{Var}(\hat{f}) \approx \rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2$
+# Regression Example
 
-Key insight:
-- Increasing \( B \) reduces variance
-- Reducing correlation \( \rho \) (via feature randomness) is crucial
-
-## Assumptions
-
-Random forests make fewer assumptions than parametric models, but still assume the following:
-
-- Training data are assumed to be independent and identically distributed.
-- Training and test data come from the same underlying distribution.
-- Predictors must contain information relevant to the response.
-- Random forests do not extrapolate well beyond observed data.
-
-## Out-of-Bag (OOB) Error Estimation
-
-Each tree is trained on a bootstrap sample, leaving about \( \approx 1/3 \) of observations unused. For each observation, predictions from trees where it was not included are averaged:
-
-$\hat{f}_{\text{OOB}}(x_i) = \frac{1}{|\mathcal{B}_i|} \sum_{b \notin \mathcal{B}_i} T_b(x_i)$
-
-This provides an unbiased estimate of generalization error.
-
-## Shortcomings
-
-Random forests make suffer from the following shortcomings when compared to linear regression:
-
-- Difficult to interpret
-- Feature importance measures can be misleading
-- Training many trees can be slow and memory-intensive
-- Can struggle when the number of irrelevant features is large
-- Predictions are averages of observed outcomes and therefore cannot extrapolate beyond training range
-- Highly correlated predictors can reduce effectiveness of feature importance measures
-
-## Summary
-
-Random forests improve upon decision trees by:
-- Reducing variance through averaging
-- Reducing correlation via random feature selection
-
-They are a flexible, powerful tool that performs well in practice with minimal tuning, making them a strong choice for both regression and classification tasks.
-
-# Regression 
-
-# Classification
-
-# Questions
+# Classification Example
