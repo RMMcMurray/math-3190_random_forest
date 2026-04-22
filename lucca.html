@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<script src="main_files/libs/clipboard/clipboard.min.js"></script>
-<script src="main_files/libs/quarto-html/tabby.min.js"></script>
-<script src="main_files/libs/quarto-html/popper.min.js"></script>
-<script src="main_files/libs/quarto-html/tippy.umd.min.js"></script>
-<link href="main_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="main_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="main_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+<script src="lucca_files/libs/clipboard/clipboard.min.js"></script>
+<script src="lucca_files/libs/quarto-html/tabby.min.js"></script>
+<script src="lucca_files/libs/quarto-html/popper.min.js"></script>
+<script src="lucca_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="lucca_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="lucca_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="lucca_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.8.27">
 
-  <meta name="author" content="Ryan McMurray">
   <title>Random Forests</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
-  <link rel="stylesheet" href="main_files/libs/revealjs/dist/reset.css">
-  <link rel="stylesheet" href="main_files/libs/revealjs/dist/reveal.css">
+  <link rel="stylesheet" href="lucca_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="lucca_files/libs/revealjs/dist/reveal.css">
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -29,13 +28,13 @@
       vertical-align: middle;
     }
   </style>
-  <link rel="stylesheet" href="main_files/libs/revealjs/dist/theme/quarto-0fde88a82f0356838740f155f1088782.css">
-  <link href="main_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
-  <link href="main_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
-  <link href="main_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
-  <link href="main_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
-  <link href="main_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
-  <link href="main_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <link rel="stylesheet" href="lucca_files/libs/revealjs/dist/theme/quarto-0fde88a82f0356838740f155f1088782.css">
+  <link href="lucca_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="lucca_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="lucca_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="lucca_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
+  <link href="lucca_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
+  <link href="lucca_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
   <style type="text/css">
     .reveal div.sourceCode {
       margin: 0;
@@ -132,135 +131,129 @@
   <h1 class="title">Random Forests</h1>
 
 <div class="quarto-title-authors">
-<div class="quarto-title-author">
-<div class="quarto-title-author-name">
-Ryan McMurray 
-</div>
-</div>
 </div>
 
+</section>
+<section id="building-the-model" class="slide level2 smaller">
+<h2>Building The Model</h2>
+<div class="columns">
+<div class="column" style="width:60%;">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = Species ~ ., data = trainData, type = "classification",      importance = T, proximity = T) 
+               Type of random forest: classification
+                     Number of trees: 500
+No. of variables tried at each split: 2
+
+        OOB estimate of  error rate: 5.83%
+Confusion matrix:
+           setosa versicolor virginica class.error
+setosa         41          0         0  0.00000000
+versicolor      0         37         2  0.05128205
+virginica       0          5        35  0.12500000</code></pre>
+</div>
+</div>
+</div><div class="column" style="width:40%;">
+<p>Out-of-Bag Error Rate: <span class="math inline">\(\frac{1}{n} \sum_{i=1}^{n} \mathbf{1}\left( y_i \neq \hat{y}_i^{\text{OOB}} \right)\)</span></p>
+<ul>
+<li>If the majority vote prediction for observation <span class="math inline">\(i\)</span> using only the trees that did not feature observation <span class="math inline">\(i\)</span> in their training subset is not equal to the true label for observation <span class="math inline">\(i\)</span>, then we set to 1. 0 otherwise.</li>
+<li>Hyperparameters: Number of trees and No.&nbsp;of variables tried at each split (mtry)</li>
+</ul>
+</div></div>
+</section>
+<section id="singular-decision-tree" class="slide level2">
+<h2>Singular Decision Tree</h2>
+
+<img data-src="lucca_files/figure-revealjs/unnamed-chunk-2-1.png" width="960" class="r-stretch"></section>
+<section id="feature-influence" class="slide level2 smaller">
+<h2>Feature Influence</h2>
+
+<img data-src="lucca_files/figure-revealjs/unnamed-chunk-3-1.png" width="864" class="r-stretch"></section>
+<section id="learning-curve-oob-error-vs.-trees" class="slide level2 smaller">
+<h2>Learning Curve — OOB Error vs.&nbsp;Trees</h2>
+
+<img data-src="lucca_files/figure-revealjs/unnamed-chunk-4-1.png" width="864" class="r-stretch"></section>
+<section id="model-evaluation" class="slide level2 smaller">
+<h2>Model Evaluation</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+            Reference
+Prediction   setosa versicolor virginica
+  setosa          9          0         0
+  versicolor      0         10         1
+  virginica       0          1         9
+
+Overall Statistics
+                                          
+               Accuracy : 0.9333          
+                 95% CI : (0.7793, 0.9918)
+    No Information Rate : 0.3667          
+    P-Value [Acc &gt; NIR] : 1.145e-10       
+                                          
+                  Kappa : 0.8997          
+                                          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: setosa Class: versicolor Class: virginica
+Sensitivity                    1.0            0.9091           0.9000
+Specificity                    1.0            0.9474           0.9500
+Pos Pred Value                 1.0            0.9091           0.9000
+Neg Pred Value                 1.0            0.9474           0.9500
+Prevalence                     0.3            0.3667           0.3333
+Detection Rate                 0.3            0.3333           0.3000
+Detection Prevalence           0.3            0.3667           0.3333
+Balanced Accuracy              1.0            0.9282           0.9250</code></pre>
+</div>
+</div>
 </section>
 <section>
-<section id="mathematical-foundation" class="title-slide slide level1 center">
-<h1>Mathematical Foundation</h1>
+<section id="hyperparameter-tuning" class="title-slide slide level1 center">
+<h1>Hyperparameter Tuning</h1>
 
 </section>
-<section id="introduction" class="slide level2">
-<h2>Introduction</h2>
-<p>Random forests are an ensemble learning method</p>
-<ul>
-<li>They combine many decision trees into a single model<br>
-</li>
-<li>Used for regression and Classification</li>
-<li>Used with complex, nonlinear data</li>
-</ul>
+<section id="random-search-for-hyperparameter-tuning" class="slide level2">
+<h2>Random Search for Hyperparameter Tuning</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Best Hyperparameters (Random Search):</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mtry  splitrule min.node.size
+13    3 extratrees            14</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Best ntree: 50 </code></pre>
+</div>
+</div>
 </section>
-<section id="key-idea" class="slide level2">
-<h2>Key Idea</h2>
-<ul>
-<li>Build many different trees<br>
-</li>
-<li>Make them decorrelated</li>
-<li>Average their predictions</li>
-</ul>
-<h3 id="why-it-works">Why It Works</h3>
-<ul>
-<li>Individual trees → high variance<br>
-</li>
-<li>Averaging → reduces variance</li>
-<li>Result → more stable and accurate model</li>
-</ul>
-</section>
-<section id="regression-trees" class="slide level2">
-<h2>Regression Trees</h2>
-<p>For regression, a tree partitions the feature space into regions <span class="math inline">\(R_1, R_2, \dots, R_J\)</span> , and predicts:</p>
-<p><span class="math inline">\(\hat{f}(x) = \sum_{j=1}^{J} c_j \mathbf{1}(x \in R_j)\)</span></p>
-<p>where <span class="math inline">\(c_j\)</span> is typically the mean of the response values in region <span class="math inline">\(R_j\)</span> .</p>
-<p>Splits are chosen to minimize residual sum of squares (RSS):</p>
-<p><span class="math inline">\(\sum_{i: x_i \in R_1} (y_i - \bar{y}_{R_1})^2 + \sum_{i: x_i \in R_2} (y_i - \bar{y}_{R_2})^2\)</span></p>
-</section>
-<section id="classification-trees" class="slide level2">
-<h2>Classification Trees</h2>
-<p>For classification, trees predict class labels using majority vote within each region.</p>
-<p>Splits are chosen to reduce impurity, commonly using:</p>
-<ul>
-<li><strong>Gini Index</strong>:</li>
-</ul>
-<p><span class="math inline">\(G = \sum_{k=1}^{K} p_k (1 - p_k)\)</span></p>
-<ul>
-<li><strong>Entropy</strong>:</li>
-</ul>
-<p><span class="math inline">\(H = -\sum_{k=1}^{K} p_k \log p_k\)</span></p>
-<p>where <span class="math inline">\(p_k\)</span> is the proportion of class <span class="math inline">\(k\)</span> in a node.</p>
-</section>
-<section id="random-forest-algorithm" class="slide level2">
-<h2>Random Forest Algorithm</h2>
-<p>A random forest builds <span class="math inline">\(B\)</span> trees using two sources of randomness:</p>
-<h3 id="bootstrap-sampling">1. Bootstrap Sampling</h3>
-<p>For each tree <span class="math inline">\(b = 1, \dots, B\)</span> , draw a bootstrap sample from the data.</p>
-<h3 id="random-feature-selection">2. Random Feature Selection</h3>
-<p>At each split, select a random subset of <span class="math inline">\(m\)</span> features (with <span class="math inline">\(m &lt; p\)</span>) and choose the best split only among those features.</p>
-</section>
-<section id="prediction" class="slide level2">
-<h2>Prediction</h2>
-<h3 id="regression">Regression</h3>
-<p><span class="math inline">\(\hat{f}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)\)</span></p>
-<h3 id="classification">Classification</h3>
-<p><span class="math inline">\(\hat{C}(x) = \text{mode}\{T_1(x), T_2(x), \dots, T_B(x)\}\)</span></p>
-</section>
-<section id="why-random-forests-work" class="slide level2">
-<h2>Why Random Forests Work</h2>
-<p>Let each tree have variance <span class="math inline">\(\sigma^2\)</span> and pairwise correlation <span class="math inline">\(\rho\)</span> . Then the variance of the ensemble is approximately:</p>
-<p><span class="math inline">\(\text{Var}(\hat{f}) \approx \rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2\)</span></p>
-<p>Key insight: - Increasing<br>
-<span class="math inline">\(B\)</span> reduces variance - Reducing correlation <span class="math inline">\(\rho\)</span> (via feature randomness) is crucial</p>
-</section>
-<section id="assumptions" class="slide level2">
-<h2>Assumptions</h2>
-<p>Random forests make fewer assumptions than parametric models, but still rely on:</p>
-<ul>
-<li>Independent Observation</li>
-<li>The training set is representative of the population</li>
-<li>Variables must provide information on the dependent variable</li>
-<li>Predictions must be within the range of the training data</li>
-</ul>
-</section>
-<section id="out-of-bag-oob-error-estimation" class="slide level2">
-<h2>Out-of-Bag (OOB) Error Estimation</h2>
-<p>Each tree is trained on a bootstrap sample, leaving about <span class="math inline">\(\approx 1/3\)</span> of observations unused.</p>
-<p>For each observation, predictions from trees where it was not included are averaged:</p>
-<p><span class="math inline">\(\hat{f}_{\text{OOB}}(x_i) = \frac{1}{|\mathcal{B}_i|} \sum_{b \notin \mathcal{B}_i} T_b(x_i)\)</span></p>
-<p>This provides an unbiased estimate of generalization error.</p>
-</section>
-<section id="shortcomings" class="slide level2">
-<h2>Shortcomings</h2>
-<ul>
-<li>Lack of Interpretability</li>
-<li>Computational Cost</li>
-<li>Bias in High-Dimensional Sparse Settings</li>
-<li>Poor Extrapolation</li>
-<li>Correlated Features</li>
-</ul>
-</section>
-<section id="summary" class="slide level2">
-<h2>Summary</h2>
-<p>Random forests improve upon decision trees by: - Reducing variance through averaging - Reducing correlation via random feature selection</p>
-<p>They are a flexible, powerful tool that performs well in practice with minimal tuning, making them a strong choice for both regression and classification tasks.</p>
+<section id="did-we-improve" class="slide level2">
+<h2>Did we improve?</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = Species ~ ., data = trainData, type = "classification",      importance = T, proximity = T, ntree = 50, mktry = 3, nodesize = 14) 
+               Type of random forest: classification
+                     Number of trees: 50
+No. of variables tried at each split: 2
+
+        OOB estimate of  error rate: 4.17%
+Confusion matrix:
+           setosa versicolor virginica class.error
+setosa         41          0         0  0.00000000
+versicolor      0         37         2  0.05128205
+virginica       0          3        37  0.07500000</code></pre>
+</div>
+</div>
+
 </section></section>
-<section id="regression-1" class="title-slide slide level1 center">
-<h1>Regression</h1>
-
-</section>
-
-<section id="classification-1" class="title-slide slide level1 center">
-<h1>Classification</h1>
-
-</section>
-
-<section id="questions" class="title-slide slide level1 center">
-<h1>Questions</h1>
-
-</section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
 <div class="footer footer-default">
@@ -269,20 +262,20 @@ Ryan McMurray
 </div></div>
 
   <script>window.backupDefine = window.define; window.define = undefined;</script>
-  <script src="main_files/libs/revealjs/dist/reveal.js"></script>
+  <script src="lucca_files/libs/revealjs/dist/reveal.js"></script>
   <!-- reveal.js plugins -->
-  <script src="main_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
-  <script src="main_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
-  <script src="main_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
-  <script src="main_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
-  <script src="main_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
-  <script src="main_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
-  <script src="main_files/libs/revealjs/plugin/notes/notes.js"></script>
-  <script src="main_files/libs/revealjs/plugin/search/search.js"></script>
-  <script src="main_files/libs/revealjs/plugin/zoom/zoom.js"></script>
-  <script src="main_files/libs/revealjs/plugin/math/math.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="lucca_files/libs/revealjs/plugin/math/math.js"></script>
   <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
 
   <script>
@@ -478,6 +471,44 @@ Ryan McMurray
         ]
       });
     </script>
+    
+    <script>
+      // htmlwidgets need to know to resize themselves when slides are shown/hidden.
+      // Fire the "slideenter" event (handled by htmlwidgets.js) when the current
+      // slide changes (different for each slide format).
+      (function () {
+        // dispatch for htmlwidgets
+        function fireSlideEnter() {
+          const event = window.document.createEvent("Event");
+          event.initEvent("slideenter", true, true);
+          window.document.dispatchEvent(event);
+        }
+
+        function fireSlideChanged(previousSlide, currentSlide) {
+          fireSlideEnter();
+
+          // dispatch for shiny
+          if (window.jQuery) {
+            if (previousSlide) {
+              window.jQuery(previousSlide).trigger("hidden");
+            }
+            if (currentSlide) {
+              window.jQuery(currentSlide).trigger("shown");
+            }
+          }
+        }
+
+        // hookup for slidy
+        if (window.w3c_slidy) {
+          window.w3c_slidy.add_observer(function (slide_num) {
+            // slide_num starts at position 1
+            fireSlideChanged(null, w3c_slidy.slides[slide_num - 1]);
+          });
+        }
+
+      })();
+    </script>
+
     <script id="quarto-html-after-body" type="application/javascript">
       window.document.addEventListener("DOMContentLoaded", function (event) {
         const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")

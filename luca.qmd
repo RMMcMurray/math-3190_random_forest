@@ -1,9 +1,0 @@
----
-title: "Random Forests"
-format: 
-  revealjs:
-    theme: simple
-    transition: slide
-    slide-number: true
-    chalkboard: true
----

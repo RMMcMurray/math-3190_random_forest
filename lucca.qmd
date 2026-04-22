@@ -1,0 +1,154 @@
+---
+title: "Random Forests"
+format: 
+  revealjs:
+    theme: simple
+    transition: slide
+    slide-number: true
+    chalkboard: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+
+## Building The Model {.smaller}
+
+:::: {.columns}
+
+```{r}
+library(randomForest)
+library(caret)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(reprtree)
+
+data(iris)
+```
+
+::: {.column width="60%"}
+```{r}
+#| label: Classification Initial Model
+set.seed(42)
+
+trainIndex = sample(1:nrow(iris), 0.8 * nrow(iris))
+
+trainData = iris[trainIndex, ]
+testData = iris[-trainIndex, ]
+
+rf_model = randomForest(Species ~ ., data = trainData, type="classification", importance=T, proximity=T)
+
+print(rf_model)
+```
+:::
+::: {.column width="40%"}
+Out-of-Bag Error Rate: $\frac{1}{n} \sum_{i=1}^{n} \mathbf{1}\left( y_i \neq \hat{y}_i^{\text{OOB}} \right)$
+
+- If the majority vote prediction for observation $i$ using only the trees that did not feature observation $i$ in their training subset is not equal to the true label for observation $i$, then we set to 1. 0 otherwise.
+- Hyperparameters: Number of trees and No. of variables tried at each split (mtry)
+
+:::
+::::
+
+## Singular Decision Tree
+
+```{r}
+plot.getTree(rf_model, k = 1)
+```
+
+## Feature Influence{.smaller}
+
+
+```{r fig.width=9, fig.height=5}
+imp = importance(rf_model)
+
+imp_df = as.data.frame(imp) |>
+  tibble::rownames_to_column("Feature") |>
+  pivot_longer(
+    cols = c(MeanDecreaseAccuracy, MeanDecreaseGini),
+    names_to  = "Metric",
+    values_to = "Importance"
+  ) |>
+  mutate(
+    Metric  = recode(Metric,
+      MeanDecreaseAccuracy = "Mean Decrease Accuracy",
+      MeanDecreaseGini = "Mean Decrease Gini"
+    ),
+    Feature = fct_reorder(Feature, Importance, .fun = mean)
+  )
+
+ggplot(imp_df, aes(x = Importance, y = Feature, fill = Metric)) +
+  geom_col(position = position_dodge(width = 0.6), width = 0.55, alpha = 0.88) +
+  facet_wrap(~Metric, scales = "free_x") +
+  scale_fill_manual(values = c("#2C7BB6", "#D7191C")) +
+  labs(
+    title = "Feature Importance",
+    subtitle = "Accuracy: permutation-based  |  Gini: impurity-based",
+    x = "Importance Score",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
+
+## Learning Curve — OOB Error vs. Trees {.smaller}
+
+```{r fig.width=9, fig.height=5}
+plot(rf_model, type = "l", main = "OOB Error vs. Number of Trees")
+```
+
+
+## Model Evaluation {.smaller}
+
+```{r}
+predictions <- predict(rf_model, testData)
+confusionMatrix(predictions, testData$Species)
+```
+
+# Hyperparameter Tuning
+
+## Random Search for Hyperparameter Tuning
+
+```{r}
+ctrl_random = trainControl(method = "cv", number = 5, search = "random")
+
+set.seed(123)
+random_model = train(
+  Species ~ .,
+  data = trainData,
+  method = "ranger",
+  tuneLength = 20,   
+  trControl = ctrl_random
+)
+
+ntree_vals = c(50, 100, 200, 300, 500)
+oob_errors = sapply(ntree_vals, function(n) {
+  rf <- randomForest(Species ~ ., data = trainData, ntree = n, mtry = 3, nodesize = 14)
+  rf$err.rate[n, "OOB"]
+})
+
+cat("\nBest Hyperparameters (Random Search):\n")
+print(random_model$bestTune)
+
+best_ntree = ntree_vals[which.min(oob_errors)]
+cat("Best ntree:", best_ntree, "\n")
+
+```
+
+## Did we improve?
+
+```{r}
+set.seed(42)
+rf_model_tune <- randomForest(Species ~ ., data = trainData, type="classification", importance=T, proximity=T, ntree=50, mktry=3, nodesize=14)
+
+print(rf_model_tune)
+```
+
