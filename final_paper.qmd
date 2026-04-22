@@ -341,6 +341,7 @@ In contrast to regression, where the goal is to predict a continuous numerical v
 ## Setup and Data Preparation
 
 ```{r}
+#| label: classification-setup
 library(randomForest) 
 library(caret) |> suppressPackageStartupMessages()
 library(ggplot2)
@@ -362,6 +363,7 @@ To evaluate model performance, the data was randomly split into training and tes
 ## Building a Model
 
 ```{r}
+#| label: rf-classification
 #| echo: False
 set.seed(42)
 rf_model = randomForest(Species ~ ., data = trainData, type="classification", importance=T, proximity=T)
@@ -384,6 +386,7 @@ The model achieved an Out-of-bag (OOB) error rate of 5.71 percent, meaning that 
 ## Singular Decision Tree
 
 ```{r}
+#| label: singular-tree
 #| echo: False
 plot.getTree(rf_model, k = 1)
 ```
@@ -395,6 +398,7 @@ This means that no single feature is globally dominant in determining the struct
 ## Feature Influence 
 
 ```{r fig.width=9, fig.height=5}
+#| label: rf-feature-importance
 #| echo: False
 
 imp = importance(rf_model)
@@ -438,6 +442,7 @@ The feature importance plot shows a clear separation in how much each feature co
 ## Learning Curve — OOB Error vs. Trees
 
 ```{r fig.width=9, fig.height=5}
+#| label: rf-oob-curve
 #| echo: False
 plot(rf_model, type = "l", main = "OOB Error vs. Number of Trees")
 ```
@@ -448,6 +453,7 @@ After roughly 200 to 230 trees, the OOB error reaches a plateau and remains esse
 ## Model Evaluation
 
 ```{r}
+#| label: rf-classification-evaluation
 #| echo: False
 predictions <- predict(rf_model, testData)
 confusionMatrix(predictions, testData$Species)
