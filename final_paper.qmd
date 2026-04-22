@@ -1,22 +1,52 @@
 ---
-title: "Random Forests"
-author:
-  - "Ryan McMurray"
-  - "Melanie Jensen"
-  - "Lucca"
-
 format:
   pdf:
+    title-block-style: none
     documentclass: article
     papersize: letter
     geometry: margin=1in
     fontsize: 11pt
     linestretch: 2
 
+execute:
+  warning: false
+  message: false
+
 header-includes:
   - \setlength{\parindent}{15pt}
   - \setlength{\parskip}{0pt}
+  - \usepackage{setspace}
+  - \AtBeginEnvironment{verbatim}{\singlespacing}
+  - \AtBeginEnvironment{Shaded}{\singlespacing}
 ---
+
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+
+{\LARGE \textbf{Random Forests}\par}
+\vspace{0.5cm}
+{\large An Introduction with Regression and Classification Applications\par}
+
+\vspace{3cm}
+
+{\large Ryan McMurray\par}
+\vspace{0.2cm}
+{\large Melanie Jensen\par}
+\vspace{0.2cm}
+{\large Lucca\par}
+
+{\large Math 3190: Fundamentals of Data Science\par}
+\vspace{0.3cm}
+{\large Rick Brown\par}
+\vspace{0.3cm}
+{\large Southern Utah University\par}
+
+{\large \today\par}
+
+\end{titlepage}
+
+\newpage
 
 # Mathematical Foundation and Assumptions
 
@@ -53,5 +83,253 @@ Despite their strong empirical performance, random forests are not without limit
 In summary, random forests build upon the strengths of decision trees while addressing their primary weakness—high variance—through averaging and randomization. By combining bootstrap sampling with random feature selection, they produce a flexible and robust modeling approach that performs well across a wide range of regression and classification problems.
 
 # Regression Example
+
+To demonstrate how random forest regression behaves in practice, this section walks through the process of building, tuning, and evaluating a random forest regression model on the Ames Housing dataset. This dataset contains 2,930 observations on residential home sales in Ames, Iowa, along with 80 predictor variables covering physical characteristics, quality ratings, location, and sale conditions. The response variable of interest is `Sale_Price`, the final sale price of each home in dollars. The dataset is well suited to a random forest demonstration because it contains a mix of continuous and categorical predictors, several groups of correlated variables, and nonlinear relationships that would be difficult to capture with a linear model without substantial feature engineering.
+
+## Setup and Data Preparation
+
+The analysis uses the `randomForest` package in R for model fitting and tuning, along with `tidyverse` packages for data manipulation and visualization. The `AmesHousing` package provides a cleaned version of the data through its `make_ames()` function, which handles factor level encoding and removes the need for most preprocessing.
+
+```{r}
+#| label: setup
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(randomForest)
+library(AmesHousing)
+library(kableExtra)
+
+ames <- make_ames()
+
+set.seed(2026)
+split <- sample(nrow(ames), size = 0.8 * nrow(ames))
+train <- ames[split, ]
+test <- ames[-split, ]
+```
+
+An 80/20 train test split was used, with 80 percent of the data reserved for model fitting and the remaining 20 percent held out for evaluation. A fixed random seed was set before the split to ensure reproducibility, which is especially important for random forests given that both the bootstrap sampling process and the random feature selection at each split introduce stochasticity into the model.
+
+## Fitting the Initial Model
+
+The initial random forest model was fit using all 80 predictors to demonstrate one of the practical strengths of the method, which is its ability to handle high-dimensional data without requiring manual variable selection or transformation. The model was built with the default 500 trees and `mtry` set to the regression default of `p/3`, where `p` is the number of predictors. This default corresponds to 26 variables being randomly considered at each split in each tree.
+
+```{r}
+#| label: random-forest
+#| eval: false
+
+set.seed(2026)
+rf_model <- randomForest(
+  Sale_Price ~ .,
+  data = train,
+  ntree = 500,
+  mtry = floor((ncol(train) - 1) / 3),
+  importance = TRUE
+)
+```
+
+The `importance = TRUE` argument instructs the function to compute permutation-based variable importance during training, which will be used in a later section to examine which predictors the model is relying on most. Computing importance during the initial fit avoids the need to refit the model later solely for that purpose.
+
+The output of the fitted model reports that 500 trees were built with 26 variables considered at each split, an out-of-bag mean squared error of approximately $6.26 \times 10^8$, and a percent of variance explained of roughly 89 percent. These out-of-bag statistics come from a built-in validation mechanism specific to bagged methods. Because each tree is trained on a bootstrap sample that omits roughly one third of the training observations, those omitted observations can be used to evaluate the prediction quality of each tree without requiring a separate validation set. Aggregating these predictions across all trees in which an observation was out-of-bag produces a nearly unbiased estimate of generalization error, which is reported as the out-of-bag MSE.
+
+## Determining the Appropriate Number of Trees
+
+Although 500 trees is the default, the choice of `ntree` is worth examining because it has implications for both model stability and computational cost. Unlike most hyperparameters, `ntree` is not a tuning parameter in the traditional sense. Adding more trees cannot cause a random forest to overfit, because each additional tree simply refines the average prediction rather than increasing model complexity. The question is therefore not which value of `ntree` minimizes error, but rather how many trees are needed for the out-of-bag error to stabilize.
+
+```{r}
+#| label: rf-tree-tuning
+#| echo: false
+#| fig-width: 6
+#| fig-height: 3.5
+#| fig-cap: "Out-of-bag mean squared error as a function of the number of trees in the forest."
+
+set.seed(2026)
+rf_model <- randomForest(
+  Sale_Price ~ .,
+  data = train,
+  ntree = 500,
+  mtry = floor((ncol(train) - 1) / 3),
+  importance = TRUE
+)
+
+tibble(
+  trees = 1:rf_model$ntree,
+  oob_mse = rf_model$mse
+) |>
+  ggplot(aes(x = trees, y = oob_mse)) +
+  geom_line(color = "steelblue", linewidth = 0.8) +
+  labs(
+    x = "Number of Trees",
+    y = "OOB MSE"
+  ) +
+  theme_minimal()
+```
+
+Figure 1 shows how the out-of-bag MSE evolves as trees are added to the forest. The error drops rapidly over the first 100 trees and stabilizes near 200 trees, after which additional trees produce no meaningful reduction in error. This pattern is consistent with the theoretical behavior of bagged ensembles, where variance is reduced by averaging but the benefit diminishes as more trees are added.
+
+## Tuning the Number of Variables Per Split
+
+The more meaningful hyperparameter in a random forest is `mtry`, which controls how many predictors are randomly considered as candidates at each split. Lower values produce more decorrelated trees at the cost of individual tree accuracy, while higher values allow each tree to consider stronger splits but make the trees more similar to one another. The `tuneRF` function in the `randomForest` package searches across `mtry` values by adjusting the starting value up and down by a chosen step factor and selecting the value that minimizes out-of-bag error.
+
+```{r}
+#| label: rf-mtry-tuning
+#| eval: false
+
+set.seed(2026)
+tuneRF(
+  x = train |> select(-Sale_Price),
+  y = train$Sale_Price,
+  ntreeTry = 200,
+  stepFactor = 1.5,
+  improve = 0.01,
+  trace = FALSE,
+  plot = TRUE
+)
+```
+
+The tuning procedure tested `mtry` values of 18, 26, and 39. The default value of 26 produced the lowest out-of-bag MSE, with the alternatives performing less than one percent worse. This result illustrates a well-known property of random forests, which is their insensitivity to hyperparameter choices within a reasonable range. The default `p/3` heuristic was confirmed to be near-optimal for this dataset, and no additional tuning was warranted.
+
+A final model was fit using the tuned specification. Because the convergence analysis in the previous section showed that out-of-bag error stabilized well before 500 trees, the final model was built with only 200 trees to reduce computational cost while preserving essentially identical predictive performance.
+
+```{r}
+#| label: tuned-random-forest
+#| eval: false
+
+set.seed(2026)
+tuned_rf_model <- randomForest(
+  Sale_Price ~ .,
+  data = train,
+  ntree = 200,
+  mtry = 26,
+  importance = TRUE
+)
+```
+
+## Model Evaluation
+
+Evaluation of a random forest regression model differs meaningfully from evaluation of a linear regression model. Because random forests make essentially no distributional assumptions about the data or the errors, traditional diagnostic procedures such as checking for normality of residuals or constant variance do not apply in the same way. Instead, evaluation focuses on direct measures of predictive performance on held-out data and on visual inspection of where the model performs well or poorly.
+
+```{r}
+#| label: rf-evaluation-setup
+#| echo: false
+
+set.seed(2026)
+tuned_rf_model <- randomForest(
+  Sale_Price ~ .,
+  data = train,
+  ntree = 200,
+  mtry = 26,
+  importance = TRUE
+)
+
+test_preds <- predict(tuned_rf_model, newdata = test)
+test_actual <- test$Sale_Price
+
+test_rmse <- sqrt(mean((test_actual - test_preds)^2))
+test_r2 <- 1 - sum((test_actual - test_preds)^2) /
+               sum((test_actual - mean(test_actual))^2)
+oob_rmse <- sqrt(tuned_rf_model$mse[tuned_rf_model$ntree])
+```
+
+```{r}
+#| label: rf-evaluation-table
+#| echo: false
+
+tibble(
+  Metric = c("Test RMSE", "Test R²", "OOB RMSE"),
+  Value = c(
+    paste0("$", format(round(test_rmse), big.mark = ",")),
+    round(test_r2, 3),
+    paste0("$", format(round(oob_rmse), big.mark = ","))
+  )
+) |>
+  kable(caption = "Performance metrics for the tuned random forest on held-out test data.", booktabs = TRUE) |>
+  kable_styling(latex_options = "hold_position", position = "center")
+```
+
+The test RMSE of approximately $25,154 indicates that on average the model predictions are off by around that amount on houses with a mean sale price of roughly $180,000, which corresponds to about a 14 percent relative error. The test R² of 0.911 indicates that the model explains 91 percent of the variance in sale price on houses it was never trained on. Perhaps most notably, the out-of-bag RMSE of $25,127 differs from the test RMSE by only $27, which confirms that the out-of-bag error provides a reliable estimate of generalization performance. This close agreement is a practical validation of the theoretical claim that out-of-bag estimates are nearly unbiased approximations of test error, and it suggests that in settings where holding out a test set is undesirable, the out-of-bag estimate alone would have produced essentially the same conclusion about model quality.
+
+```{r}
+#| label: rf-evaluation-plot
+#| echo: false
+#| fig-width: 6
+#| fig-height: 3.5
+#| fig-cap: "Predicted versus actual sale prices on the held-out test set. The dashed red line represents perfect prediction."
+
+tibble(actual = test_actual, predicted = test_preds) |>
+  ggplot(aes(x = actual, y = predicted)) +
+  geom_point(alpha = 0.4, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  scale_x_continuous(labels = scales::dollar_format()) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(
+    x = "Actual Sale Price",
+    y = "Predicted Sale Price"
+  ) +
+  theme_minimal()
+```
+
+Figure 2 plots predicted sale prices against actual sale prices on the test set. Points cluster tightly around the diagonal through most of the price range, with the densest region of data falling between $100,000 and $300,000 where the model performs best. Two patterns become visible at the upper end of the price range. The spread of the points widens, indicating that prediction uncertainty grows for more expensive homes, and the points shift systematically below the diagonal, indicating that the model tends to underpredict the most expensive homes. Both patterns share a common cause. Random forest predictions are constructed by averaging responses in the terminal nodes of each tree, which means no prediction can exceed the largest value observed in the training data. For homes at or beyond the upper range of the training set, the model is both less informed by data and structurally incapable of extrapolating upward. This is a known limitation of tree-based methods and is important to acknowledge when applying random forests to problems where extreme values matter.
+
+```{r}
+#| label: rf-residual-plot
+#| echo: false
+#| fig-width: 6
+#| fig-height: 3.5
+#| fig-cap: "Residuals from the tuned random forest model, defined as actual minus predicted sale price, plotted against predicted sale price."
+
+tibble(
+  predicted = test_preds,
+  residual = test_actual - test_preds
+) |>
+  ggplot(aes(x = predicted, y = residual)) +
+  geom_point(alpha = 0.4, color = "steelblue") +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  scale_x_continuous(labels = scales::dollar_format()) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(
+    x = "Predicted Sale Price",
+    y = "Residual (Actual − Predicted)"
+  ) +
+  theme_minimal()
+```
+
+The residual plot in Figure 3 makes the same patterns explicit. Residuals fan out as predictions increase, and at the highest predicted values the residuals are predominantly positive, which is the mirror image of the underprediction visible in Figure 2. In a linear regression context, this pattern would be interpreted as a violation of the homoscedasticity assumption and would prompt remedial action such as a log transformation of the response. In the random forest context, where no such assumption is being made, the pattern is instead interpreted descriptively as evidence that the model performs less reliably at the extremes of the price distribution.
+
+## Variable Importance
+
+One of the practical advantages of random forests over linear models is the availability of built-in variable importance measures that describe which predictors the model is relying on most. This analysis uses permutation-based importance, reported as percent increase in mean squared error when a variable is permuted. The procedure takes the out-of-bag observations and randomly shuffles the values of a single predictor while holding all other predictors fixed, then measures how much the out-of-bag MSE increases as a result. A variable whose permutation causes a large increase in MSE is one the model is relying on heavily for accurate predictions, while a variable whose permutation changes MSE very little is one the model is effectively ignoring.
+
+```{r}
+#| label: feature-importance
+#| echo: false
+#| fig-width: 6
+#| fig-height: 3.5
+#| fig-cap: "Top 20 predictors ranked by permutation-based variable importance, measured as the percent increase in out-of-bag MSE when the variable is permuted."
+
+importance_df <- importance(tuned_rf_model) |>
+  as.data.frame() |>
+  tibble::rownames_to_column("variable") |>
+  arrange(desc(`%IncMSE`)) |>
+  head(20)
+
+ggplot(importance_df, aes(x = `%IncMSE`, y = reorder(variable, `%IncMSE`))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    x = "% Increase in MSE when Variable is Permuted",
+    y = NULL
+  ) +
+  theme_minimal()
+```
+
+Figure 4 shows the top 20 predictors ranked by permutation importance. The most important variables are `Gr_Liv_Area` (above-ground living area), followed by `First_Flr_SF`, `Neighborhood`, `Total_Bsmt_SF`, and several other size and location variables. This ranking aligns with real-world intuition about housing prices, where square footage and location are typically the strongest drivers of value. The alignment between the model's most important variables and what a domain expert would prioritize serves as a useful sanity check that the model is learning meaningful patterns rather than spurious ones.
+
+Below the top 20 predictors, importance scores drop toward zero, and a number of variables show slightly negative values. A negative percent increase in MSE does not mean that the variable actively harms predictions. Instead, it reflects the fact that the permutation procedure introduces its own random variation, and when a variable contributes essentially no predictive signal, the measured importance fluctuates around zero and can land on either side. In practical terms, variables at the bottom of the ranking are either carrying information already captured by correlated predictors or have no meaningful relationship with sale price, and the model is not relying on them regardless.
+
+This finding has a useful implication for model simplification. Because many of the 80 predictors in the model contribute little to prediction, a reduced model fit on only the top 15 to 20 predictors would likely perform nearly as well as the full model. In settings where interpretability, training speed, or data collection cost matter, using variable importance to guide feature selection is a common and defensible practice. For the purposes of this demonstration, the full model is retained to illustrate how random forests handle high-dimensional data without requiring that selection step.
+
+## Summary
+
+The random forest regression model built on the Ames Housing dataset achieves strong predictive performance on held-out test data, explaining approximately 91 percent of the variance in sale price with a test RMSE of about $25,000. The close agreement between out-of-bag and test error confirms the theoretical property that out-of-bag estimation provides a reliable approximation of generalization error. Tuning analysis showed that the default hyperparameters were near-optimal, consistent with the well-known robustness of random forests to parameter choices. Variable importance analysis produced a ranking that aligns with domain intuition, with size and location predictors dominating the model. The primary limitation observed was the model's tendency to underpredict the highest-priced homes, which reflects the structural inability of tree-based methods to extrapolate beyond the training data. Overall, the example demonstrates that random forests are well suited to problems with many mixed-type predictors, nonlinear relationships, and correlated features, where linear models would require substantial preprocessing to perform comparably.
 
 # Classification Example
