@@ -7,6 +7,7 @@ format:
     transition: slide
     slide-number: true
     chalkboard: true
+jupyter: python3
 ---
 
 # Mathematical Foundation
@@ -149,5 +150,7 @@ They are a flexible, powerful tool that performs well in practice with minimal t
 # Regression 
 
 # Classification
+
+
 
 # Questions
