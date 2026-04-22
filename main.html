@@ -6,10 +6,10 @@
 <script src="main_files/libs/quarto-html/tippy.umd.min.js"></script>
 <link href="main_files/libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="main_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="main_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.8.27">
+<link href="main_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.7.32">
 
-  <meta name="author" content="Ryan McMurray">
+  <meta name="author" content="Ryan McMurray, Melanie Jensen, Lucca Coelho">
   <title>Random Forests</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,7 +29,7 @@
       vertical-align: middle;
     }
   </style>
-  <link rel="stylesheet" href="main_files/libs/revealjs/dist/theme/quarto-0fde88a82f0356838740f155f1088782.css">
+  <link rel="stylesheet" href="main_files/libs/revealjs/dist/theme/quarto-2c1b5f745a11cfad616ebade4a4a7d24.css">
   <link href="main_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="main_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="main_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -123,6 +123,10 @@
       margin-right: 0; 
     }
   </style>
+  <script src="main_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
+  <link href="main_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
 </head>
 <body class="quarto-light">
   <div class="reveal">
@@ -134,7 +138,7 @@
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
 <div class="quarto-title-author-name">
-Ryan McMurray 
+Ryan McMurray, Melanie Jensen, Lucca Coelho 
 </div>
 </div>
 </div>
@@ -151,7 +155,7 @@ Ryan McMurray
 <ul>
 <li>They combine many decision trees into a single model<br>
 </li>
-<li>Used for regression and Classification</li>
+<li>Used for regression and classification</li>
 <li>Used with complex, nonlinear data</li>
 </ul>
 </section>
@@ -201,19 +205,16 @@ Ryan McMurray
 <h3 id="random-feature-selection">2. Random Feature Selection</h3>
 <p>At each split, select a random subset of <span class="math inline">\(m\)</span> features (with <span class="math inline">\(m &lt; p\)</span>) and choose the best split only among those features.</p>
 </section>
-<section id="prediction" class="slide level2">
-<h2>Prediction</h2>
-<h3 id="regression">Regression</h3>
-<p><span class="math inline">\(\hat{f}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)\)</span></p>
-<h3 id="classification">Classification</h3>
-<p><span class="math inline">\(\hat{C}(x) = \text{mode}\{T_1(x), T_2(x), \dots, T_B(x)\}\)</span></p>
-</section>
 <section id="why-random-forests-work" class="slide level2">
 <h2>Why Random Forests Work</h2>
 <p>Let each tree have variance <span class="math inline">\(\sigma^2\)</span> and pairwise correlation <span class="math inline">\(\rho\)</span> . Then the variance of the ensemble is approximately:</p>
 <p><span class="math inline">\(\text{Var}(\hat{f}) \approx \rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2\)</span></p>
-<p>Key insight: - Increasing<br>
-<span class="math inline">\(B\)</span> reduces variance - Reducing correlation <span class="math inline">\(\rho\)</span> (via feature randomness) is crucial</p>
+<p>Key insight:</p>
+<ul>
+<li>Increasing<br>
+<span class="math inline">\(B\)</span> reduces variance</li>
+<li>Reducing correlation <span class="math inline">\(\rho\)</span> (via feature randomness) is crucial</li>
+</ul>
 </section>
 <section id="assumptions" class="slide level2">
 <h2>Assumptions</h2>
@@ -242,21 +243,367 @@ Ryan McMurray
 <li>Correlated Features</li>
 </ul>
 </section>
+<section id="real-world-applications" class="slide level2">
+<h2>Real-World Applications</h2>
+<ul>
+<li><strong>Healthcare</strong>
+<ul>
+<li>Predicting disease risk</li>
+<li>Identifying important risk factors</li>
+</ul></li>
+<li><strong>Finance</strong>
+<ul>
+<li>Credit scoring (loan approval decisions)<br>
+</li>
+<li>Fraud detection in transactions</li>
+</ul></li>
+<li><strong>Marketing</strong>
+<ul>
+<li>Customer churn prediction<br>
+</li>
+<li>Targeted advertising</li>
+</ul></li>
+</ul>
+</section>
 <section id="summary" class="slide level2">
 <h2>Summary</h2>
-<p>Random forests improve upon decision trees by: - Reducing variance through averaging - Reducing correlation via random feature selection</p>
+<p>Random forests improve upon decision trees by:</p>
+<ul>
+<li>Reducing variance through averaging</li>
+<li>Reducing correlation via random feature selection</li>
+</ul>
 <p>They are a flexible, powerful tool that performs well in practice with minimal tuning, making them a strong choice for both regression and classification tasks.</p>
 </section></section>
-<section id="regression-1" class="title-slide slide level1 center">
+<section>
+<section id="regression" class="title-slide slide level1 center">
 <h1>Regression</h1>
 
 </section>
+<section id="ames-housing-data" class="slide level2">
+<h2>AMES Housing Data</h2>
+<ul>
+<li>2,930 homes, 81 variables</li>
+<li>Predicting Sale_Price from everything else</li>
+</ul>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table caption-top" data-quarto-postprocess="true" style="font-size: 20px; margin-left: auto; margin-right: auto;">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">Sale_Price</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Gr_Liv_Area</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Overall_Qual</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Year_Built</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Neighborhood</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Total_Bsmt_SF</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">215000</td>
+<td style="text-align: right;">1656</td>
+<td style="text-align: left;">Above_Average</td>
+<td style="text-align: right;">1960</td>
+<td style="text-align: left;">North_Ames</td>
+<td style="text-align: right;">1080</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">105000</td>
+<td style="text-align: right;">896</td>
+<td style="text-align: left;">Average</td>
+<td style="text-align: right;">1961</td>
+<td style="text-align: left;">North_Ames</td>
+<td style="text-align: right;">882</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">172000</td>
+<td style="text-align: right;">1329</td>
+<td style="text-align: left;">Above_Average</td>
+<td style="text-align: right;">1958</td>
+<td style="text-align: left;">North_Ames</td>
+<td style="text-align: right;">1329</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">244000</td>
+<td style="text-align: right;">2110</td>
+<td style="text-align: left;">Good</td>
+<td style="text-align: right;">1968</td>
+<td style="text-align: left;">North_Ames</td>
+<td style="text-align: right;">2110</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">189900</td>
+<td style="text-align: right;">1629</td>
+<td style="text-align: left;">Average</td>
+<td style="text-align: right;">1997</td>
+<td style="text-align: left;">Gilbert</td>
+<td style="text-align: right;">928</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">195500</td>
+<td style="text-align: right;">1604</td>
+<td style="text-align: left;">Above_Average</td>
+<td style="text-align: right;">1998</td>
+<td style="text-align: left;">Gilbert</td>
+<td style="text-align: right;">926</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="correlation-plot" class="slide level2">
+<h2>Correlation Plot</h2>
 
-<section id="classification-1" class="title-slide slide level1 center">
+<img data-src="main_files/figure-revealjs/pairplot-1.png" width="960" class="r-stretch"></section>
+<section id="random-forest-model" class="slide level2">
+<h2>Random Forest Model</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = Sale_Price ~ ., data = train, ntree = 500,      mtry = floor((ncol(train) - 1)/3), importance = TRUE) 
+               Type of random forest: regression
+                     Number of trees: 500
+No. of variables tried at each split: 26
+
+          Mean of squared residuals: 631025284
+                    % Var explained: 89.81</code></pre>
+</div>
+</div>
+</section>
+<section id="random-forest-tree-tuning" class="slide level2">
+<h2>Random Forest Tree Tuning</h2>
+
+<img data-src="main_files/figure-revealjs/rf-tree-tuning-1.png" width="960" class="r-stretch"></section>
+<section id="random-forest-mtry-tuning" class="slide level2">
+<h2>Random Forest mtry Tuning</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>-0.02543525 0.01 
+-0.05078364 0.01 </code></pre>
+</div>
+
+<div class="cell-output cell-output-stdout">
+<pre><code>   mtry  OOBError
+18   18 638525174
+26   26 622686976
+39   39 654309286</code></pre>
+</div>
+</div>
+<img data-src="main_files/figure-revealjs/rf-mtry-tuning-output-1.png" width="960" class="r-stretch"></section>
+<section id="tuned-random-forest-model" class="slide level2">
+<h2>Tuned Random Forest Model</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = Sale_Price ~ ., data = train, ntree = 200,      mtry = 26, importance = TRUE) 
+               Type of random forest: regression
+                     Number of trees: 200
+No. of variables tried at each split: 26
+
+          Mean of squared residuals: 631345965
+                    % Var explained: 89.81</code></pre>
+</div>
+</div>
+</section>
+<section id="model-evaluation" class="slide level2">
+<h2>Model Evaluation</h2>
+<div class="columns">
+<div class="column" style="width:20%;">
+<div class="cell">
+<div class="cell-output-display">
+<table class="table caption-top" data-quarto-postprocess="true" style="font-size: 20px; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Metric</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Test RMSE</td>
+<td style="text-align: left;">$25,154</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Test R²</td>
+<td style="text-align: left;">0.911</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">OOB RMSE</td>
+<td style="text-align: left;">$25,127</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div><div class="column" style="width:40%;">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="main_files/figure-revealjs/rf-evaluation-plot-1.png" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:40%;">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="main_files/figure-revealjs/rf-residual_plot-1.png" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+</div></div>
+</section>
+<section id="feature-importance" class="slide level2">
+<h2>Feature Importance</h2>
+<div class="columns">
+<div class="column" style="width:60%;">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="main_files/figure-revealjs/feature-importance-1.png" width="1344"></p>
+</figure>
+</div>
+</div>
+</div>
+</div><div class="column" style="width:40%;">
+<div style="font-size: 0.6em;">
+<p>When we scramble <em>variable</em> values in the OOB data, the model’s MSE increases by <em>value</em>%.</p>
+<p>Variables at the bottom either carry redundant information already captured by other predictors, or have no real relationship to price at all. Either way, the model isn’t using them meaningfully. When we permute these unused variables, the MSE barely changes — it wobbles randomly above or below the original value. Negative values aren’t evidence that the variable was harmful; they’re just what noise looks like around zero when a variable has no true importance.</p>
+</div>
+</div></div>
+</section></section>
+<section>
+<section id="classification" class="title-slide slide level1 center">
 <h1>Classification</h1>
 
 </section>
+<section id="building-the-model" class="slide level2 smaller">
+<h2>Building The Model</h2>
+<div class="columns">
+<div class="column" style="width:60%;">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = Species ~ ., data = trainData, type = "classification",      importance = T, proximity = T) 
+               Type of random forest: classification
+                     Number of trees: 500
+No. of variables tried at each split: 2
 
+        OOB estimate of  error rate: 5.83%
+Confusion matrix:
+           setosa versicolor virginica class.error
+setosa         41          0         0  0.00000000
+versicolor      0         37         2  0.05128205
+virginica       0          5        35  0.12500000</code></pre>
+</div>
+</div>
+</div><div class="column" style="width:40%;">
+<p>Out-of-Bag Error Rate: <span class="math inline">\(\frac{1}{n} \sum_{i=1}^{n} \mathbf{1}\left( y_i \neq \hat{y}_i^{\text{OOB}} \right)\)</span></p>
+<ul>
+<li>If the majority vote prediction for observation <span class="math inline">\(i\)</span> using only the trees that did not feature observation <span class="math inline">\(i\)</span> in their training subset is not equal to the true label for observation <span class="math inline">\(i\)</span>, then we set to 1. 0 otherwise.</li>
+<li>Hyperparameters: Number of trees and No.&nbsp;of variables tried at each split (mtry)</li>
+</ul>
+</div></div>
+</section>
+<section id="singular-decision-tree" class="slide level2">
+<h2>Singular Decision Tree</h2>
+
+<img data-src="main_files/figure-revealjs/single-tree-1.png" width="960" class="r-stretch"></section>
+<section id="feature-influence" class="slide level2 smaller">
+<h2>Feature Influence</h2>
+
+<img data-src="main_files/figure-revealjs/unnamed-chunk-2-1.png" width="864" class="r-stretch"></section>
+<section id="learning-curve-oob-error-vs.-trees" class="slide level2 smaller">
+<h2>Learning Curve — OOB Error vs.&nbsp;Trees</h2>
+
+<img data-src="main_files/figure-revealjs/unnamed-chunk-3-1.png" width="864" class="r-stretch"></section>
+<section id="model-evaluation-1" class="slide level2 smaller">
+<h2>Model Evaluation</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+            Reference
+Prediction   setosa versicolor virginica
+  setosa          9          0         0
+  versicolor      0         10         1
+  virginica       0          1         9
+
+Overall Statistics
+                                          
+               Accuracy : 0.9333          
+                 95% CI : (0.7793, 0.9918)
+    No Information Rate : 0.3667          
+    P-Value [Acc &gt; NIR] : 1.145e-10       
+                                          
+                  Kappa : 0.8997          
+                                          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: setosa Class: versicolor Class: virginica
+Sensitivity                    1.0            0.9091           0.9000
+Specificity                    1.0            0.9474           0.9500
+Pos Pred Value                 1.0            0.9091           0.9000
+Neg Pred Value                 1.0            0.9474           0.9500
+Prevalence                     0.3            0.3667           0.3333
+Detection Rate                 0.3            0.3333           0.3000
+Detection Prevalence           0.3            0.3667           0.3333
+Balanced Accuracy              1.0            0.9282           0.9250</code></pre>
+</div>
+</div>
+</section></section>
+<section>
+<section id="hyperparameter-tuning" class="title-slide slide level1 center">
+<h1>Hyperparameter Tuning</h1>
+
+</section>
+<section id="random-search-for-hyperparameter-tuning" class="slide level2">
+<h2>Random Search for Hyperparameter Tuning</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Best Hyperparameters (Random Search):</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mtry  splitrule min.node.size
+13    3 extratrees            14</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Best ntree: 50 </code></pre>
+</div>
+</div>
+</section>
+<section id="did-we-improve" class="slide level2">
+<h2>Did we improve?</h2>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = Species ~ ., data = trainData, type = "classification",      importance = T, proximity = T, ntree = 50, mtry = 2, nodesize = 14) 
+               Type of random forest: classification
+                     Number of trees: 50
+No. of variables tried at each split: 2
+
+        OOB estimate of  error rate: 4.17%
+Confusion matrix:
+           setosa versicolor virginica class.error
+setosa         41          0         0  0.00000000
+versicolor      0         37         2  0.05128205
+virginica       0          3        37  0.07500000</code></pre>
+</div>
+</div>
+</section></section>
 <section id="questions" class="title-slide slide level1 center">
 <h1>Questions</h1>
 
@@ -452,7 +799,7 @@ Ryan McMurray
         margin: 0.1,
 
         math: {
-          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js',
           config: 'TeX-AMS_HTML-full',
           tex2jax: {
             inlineMath: [['\\(','\\)']],
@@ -478,6 +825,82 @@ Ryan McMurray
         ]
       });
     </script>
+    
+
+    <script>
+
+      // htmlwidgets need to know to resize themselves when slides are shown/hidden.
+
+      // Fire the "slideenter" event (handled by htmlwidgets.js) when the current
+
+      // slide changes (different for each slide format).
+
+      (function () {
+
+        // dispatch for htmlwidgets
+
+        function fireSlideEnter() {
+
+          const event = window.document.createEvent("Event");
+
+          event.initEvent("slideenter", true, true);
+
+          window.document.dispatchEvent(event);
+
+        }
+
+    
+
+        function fireSlideChanged(previousSlide, currentSlide) {
+
+          fireSlideEnter();
+
+    
+
+          // dispatch for shiny
+
+          if (window.jQuery) {
+
+            if (previousSlide) {
+
+              window.jQuery(previousSlide).trigger("hidden");
+
+            }
+
+            if (currentSlide) {
+
+              window.jQuery(currentSlide).trigger("shown");
+
+            }
+
+          }
+
+        }
+
+    
+
+        // hookup for slidy
+
+        if (window.w3c_slidy) {
+
+          window.w3c_slidy.add_observer(function (slide_num) {
+
+            // slide_num starts at position 1
+
+            fireSlideChanged(null, w3c_slidy.slides[slide_num - 1]);
+
+          });
+
+        }
+
+    
+
+      })();
+
+    </script>
+
+    
+
     <script id="quarto-html-after-body" type="application/javascript">
       window.document.addEventListener("DOMContentLoaded", function (event) {
         const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
@@ -526,14 +949,13 @@ Ryan McMurray
           e.clearSelection();
         }
         const getTextToCopy = function(trigger) {
-          const outerScaffold = trigger.parentElement.cloneNode(true);
-          const codeEl = outerScaffold.querySelector('code');
-          for (const childEl of codeEl.children) {
-            if (isCodeAnnotation(childEl)) {
-              childEl.remove();
+            const codeEl = trigger.previousElementSibling.cloneNode(true);
+            for (const childEl of codeEl.children) {
+              if (isCodeAnnotation(childEl)) {
+                childEl.remove();
+              }
             }
-          }
-          return codeEl.innerText;
+            return codeEl.innerText;
         }
         const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
           text: getTextToCopy

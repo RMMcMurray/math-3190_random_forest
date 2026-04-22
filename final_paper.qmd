@@ -34,7 +34,7 @@ header-includes:
 \vspace{0.2cm}
 {\large Melanie Jensen\par}
 \vspace{0.2cm}
-{\large Lucca\par}
+{\large Lucca Coelho\par}
 
 {\large Math 3190: Fundamentals of Data Science\par}
 \vspace{0.3cm}
@@ -50,7 +50,7 @@ header-includes:
 
 # Mathematical Foundation and Assumptions
 
-Random forests are an ensemble learning method that construct a large collection of decision trees and aggregate their predictions to produce a single model. They are widely used for both regression and classification problems, particularly in settings where the relationship between predictors and the response is nonlinear or involves complex interactions. The central motivation for random forests is the reduction of variance: while individual decision trees tend to be highly variable, averaging many such trees—provided they are sufficiently decorrelated—yields a more stable and accurate predictor.
+Random forests are an ensemble learning method that constructs a large collection of decision trees and aggregate their predictions to produce a single model. They are widely used for both regression and classification problems, particularly in settings where the relationship between predictors and the response is nonlinear or involves complex interactions. The central motivation for random forests is the reduction of variance: while individual decision trees tend to be highly variable, averaging many such trees, provided they are sufficiently decorrelated, yields a more stable and accurate predictor.
 
 The construction of a random forest begins with decision trees, which partition the feature space into a set of disjoint regions and assign predictions based on those regions. In the regression setting, a tree partitions the predictor space into regions
 $R_1, \dots, R_J$
