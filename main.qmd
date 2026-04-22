@@ -462,10 +462,10 @@ Out-of-Bag Error Rate: $\frac{1}{n} \sum_{i=1}^{n} \mathbf{1}\left( y_i \neq \ha
 set.seed(2026)
 
 tree_model <- rpart(
-  Sale_Price ~ .,
-  data = train,
-  method = "anova"
-)
+  Species ~ .,
+  data = trainData,
+  method = "anova")
+
 
 rpart.plot(tree_model, main = "Single Decision Tree Approximation")
 ```

@@ -333,3 +333,133 @@ This finding has a useful implication for model simplification. Because many of 
 The random forest regression model built on the Ames Housing dataset achieves strong predictive performance on held-out test data, explaining approximately 91 percent of the variance in sale price with a test RMSE of about $25,000. The close agreement between out-of-bag and test error confirms the theoretical property that out-of-bag estimation provides a reliable approximation of generalization error. Tuning analysis showed that the default hyperparameters were near-optimal, consistent with the well-known robustness of random forests to parameter choices. Variable importance analysis produced a ranking that aligns with domain intuition, with size and location predictors dominating the model. The primary limitation observed was the model's tendency to underpredict the highest-priced homes, which reflects the structural inability of tree-based methods to extrapolate beyond the training data. Overall, the example demonstrates that random forests are well suited to problems with many mixed-type predictors, nonlinear relationships, and correlated features, where linear models would require substantial preprocessing to perform comparably. The method is most appropriate in applied settings where predictive accuracy is the primary concern, such as price prediction, risk scoring, ecological modeling, and medical diagnostics. It is particularly valuable when working with datasets that contain a large number of candidate predictors whose individual relationships with the response are not well understood, because the algorithm can identify informative variables without requiring the analyst to specify those relationships in advance. The method is less appropriate when the goal is formal statistical inference or when predictions must extend beyond the range of the observed data, in which case a parametric model with explicit assumptions about the relationship between predictors and the response would be more suitable.
 
 # Classification Example
+
+To illustrate how random forest performs in a classification setting, this section applies the algorithm to the very well known iris dataset. The dataset consists of 150 observations of iris flowers, each described by a numerical feature: sepal length, sepal width, petal length, and petal width. The response variable is the species of the flower, which contain three classes: setosa, versicolor, and virginica. This dataset is very useful to demonstrate the classification techniques because the species are linearly separable but also shows some overlap, making it simple enough to visualize yet complex enough to show the strengths of more flexible models.
+
+In contrast to regression, where the goal is to predict a continuous numerical value, classification focuses on assigning observations to categories. Random forests handle this the way you normally expects of this model, by building multiple decision trees that each produce a class prediction, and then is a matter of majority wins. The iris dataset provides a clear setting to observe how random forests partition the feature space and improve predictive accuracy compared to individual trees, while also allowing for straightforward evaluation using metrics such as accuracy and confusion matrices.
+
+## Setup and Data Preparation
+
+```{r}
+library(randomForest) 
+library(caret) |> suppressPackageStartupMessages()
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(reprtree)
+
+data(iris)
+
+trainIndex = sample(1:nrow(iris), 0.7 * nrow(iris))
+
+trainData = iris[trainIndex, ]
+testData = iris[-trainIndex, ]
+```
+
+To evaluate model performance, the data was randomly split into training and testing sets using an 70/30 split, where 70 percent of the observations were used to train the model and the remaining 30 percent were held out for testing, the split was 70/30 instead of the 80/20 used in regression because the iris dataset is significantly smaller. This separation ensures that model performance is assessed on unseen data, providing a more realistic measure of how well the classifier generalizes beyond the training sample.
+
+## Building a Model
+
+```{r}
+#| echo: False
+set.seed(42)
+rf_model = randomForest(Species ~ ., data = trainData, type="classification", importance=T, proximity=T)
+
+print(rf_model)
+```
+For the random forests model, some key hyperparameters to look at is number of variables tried at each split (mtry), and number of trees (ntree). The number of variables tried at each split being set to 2 means that for each decision tree, only two out of the four variables are being randomly sampled as candidates. This hyperparameter matters because this is the way of random forests to build multiple different decision trees splits.
+
+To evaluate this model on the training data, we can look at the Out-of-bag (OOB) estimate of error rate, as it was mentioned in regression. Since we know that the random forest algorithm uses bootstrapping sampling, and each bootstrap sample contain roughly 2/3 of uniquely data points, we can call that the remaining 1/3 are "out-of-bag." Therefore, the OOB estimate error will use each of these data points, gather all trees in the forest that did not use this specific point in their training, make a prediction with this forest, and then compare the predicted class to the true class. The formula for the OOB estimate error:
+
+$\frac{1}{n} \sum_{i=1}^{n} \mathbf{I}\left( y_i \neq \hat{y}_i^{\text{OOB}} \right)$
+
+$\hat{y}_i^{\text{OOB}} =$ The predicted class for the i-th data point. $y_i =$ The true class for the i-th data point.
+
+$N =$ Total number of data points in the original training dataset. 
+$\mathbf{I} =$ Indicator functions that will be equal to 1 if $\left( y_i \neq \hat{y}_i^{\text{OOB}} \right)$ is true, and 0 otherwise.
+
+The model achieved an Out-of-bag (OOB) error rate of 5.71 percent, meaning that 5.71 percent of the observation were misclassified when each point was predicted using only decision trees that did not include it during training.
+
+## Singular Decision Tree
+
+```{r}
+#| echo: False
+plot.getTree(rf_model, k = 1)
+```
+
+While visualizing a single decision tree does not explain the full behavior of the random forest, it provides useful intuition for how individual trees make predictions. Each tree is trained on a bootstrap sample of the data, and at every split, only a random subset of predictors is considered. From that subset, the algorithm selects the split that best separates the classes according to a criterion such as the Gini index previusly mentioned.
+
+This means that no single feature is globally dominant in determining the structure of the tree, instead, different trees may use different features near the top depending on the random subset available at each split. The tree then recursively partitions the data by applying threshold rules on the selected features, creating decision paths that eventually lead to leaf nodes. Each leaf node assigns a predicted class, which in this dataset corresponds to one of the iris species.
+
+## Feature Influence 
+
+```{r fig.width=9, fig.height=5}
+#| echo: False
+
+imp = importance(rf_model)
+
+imp_df = as.data.frame(imp) |>
+  tibble::rownames_to_column("Feature") |>
+  pivot_longer(
+    cols = c(MeanDecreaseAccuracy, MeanDecreaseGini),
+    names_to  = "Metric",
+    values_to = "Importance"
+  ) |>
+  mutate(
+    Metric  = recode(Metric,
+      MeanDecreaseAccuracy = "Mean Decrease Accuracy",
+      MeanDecreaseGini = "Mean Decrease Gini"
+    ),
+    Feature = fct_reorder(Feature, Importance, .fun = mean)
+  )
+
+ggplot(imp_df, aes(x = Importance, y = Feature, fill = Metric)) +
+  geom_col(position = position_dodge(width = 0.6), width = 0.55, alpha = 0.88) +
+  facet_wrap(~Metric, scales = "free_x") +
+  scale_fill_manual(values = c("#2C7BB6", "#D7191C")) +
+  labs(
+    title = "Feature Importance",
+    subtitle = "Accuracy: permutation-based  |  Gini: impurity-based",
+    x = "Importance Score",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
+
+The feature importance plot shows a clear separation in how much each feature contributes to classifying iris species. The general idea here is that the Mean Decrease Gini is calculated by measuring how much that feature reduces uncertainty across all trees in the forest. Both metrics agree on the same overall structure: petal measurements dominate the model, while sepal measurements contribute much less. In particular, Petal Length and Petal Width are by far the most influential variables, meaning that when their values are used in splitting, model performance drops significantly.
+
+## Learning Curve — OOB Error vs. Trees
+
+```{r fig.width=9, fig.height=5}
+#| echo: False
+plot(rf_model, type = "l", main = "OOB Error vs. Number of Trees")
+```
+The out-of-bag (OOB) error curve highlights a pattern that is very typical for random forests: the model improves quickly at first and then levels off. Early in the process, when only a small number of trees have been built, the error rate fluctuates quite a bit. This instability is expected, since each prediction is based on a limited ensemble and is therefore more sensitive to the randomness in individual trees. As more trees are added, the error drops and the curve becomes noticeably smoother, reflecting the averaging effect that stabilizes the model’s predictions.
+
+After roughly 200 to 230 trees, the OOB error reaches a plateau and remains essentially constant. At this point, the model has captured most of the available signal in the data, and additional trees do not lead to meaningful improvements in performance. It is important to notice, the error does not increase as the number of trees grows, which is consistent with the idea that random forests do not overfit. In practice, this means that using a very large number of trees is often unnecessary, since a smaller forest can achieve the same predictive accuracy with less computational cost.
+
+## Model Evaluation
+
+```{r}
+#| echo: False
+predictions <- predict(rf_model, testData)
+confusionMatrix(predictions, testData$Species)
+```
+The overall accuracy of 95.56% and a Kappa statistic of 0.93 both point to strong predictive performance. Looking at the class-level metrics, setosa again shows perfect scores, while versicolor and virginica have slightly lower sensitivity and precision. The only limitation is a pattern to confuse virginica with versicolor, which aligns with what was observed in the training results.
+
+# Conclusion
+
+Random forests turn out to be a very solid model across both regression and classification problems, especially when the data has complex patterns that are hard to model directly. In the regression example, the model captured most of the variation in housing prices with strong agreement between out-of-bag and test error, which is a good indication that it is generalizing well rather than fitting noise. In the classification example, the model achieved high accuracy, with only a small amount of confusion between the more similar classes. Across both cases, the results show that random forests can deliver strong performance without requiring extensive tuning.
+
+What stands out most is how the method balances flexibility and stability. By averaging many decision trees, it reduces the variability that makes single trees unreliable, while the randomness in the process helps prevent the model from relying too heavily on any one subset of features in the data. At the same time, there are clear limitations. In particular, random forests are not well suited for situations where interpretability is important, since the model’s predictions come from an ensemble of many trees rather than a single, transparent structure. Although tools like variable importance provide some insight, they do not offer the same level of clarity as simpler models.
+
+Overall, random forests are a dependable and practical tool, especially when the goal is accurate prediction and the underlying relationships in the data are not fully known. They may not be the best choice when clear model interpretation or extrapolation is required, but in many applied settings, they offer a strong balance of performance, robustness, and ease of use.
+
+
