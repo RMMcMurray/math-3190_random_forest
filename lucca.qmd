@@ -147,7 +147,7 @@ cat("Best ntree:", best_ntree, "\n")
 
 ```{r}
 set.seed(42)
-rf_model_tune <- randomForest(Species ~ ., data = trainData, type="classification", importance=T, proximity=T, ntree=50, mktry=3, nodesize=14)
+rf_model_tune <- randomForest(Species ~ ., data = trainData, type="classification", importance=T, proximity=T, ntree=50, mtry=2, nodesize=14)
 
 print(rf_model_tune)
 ```
