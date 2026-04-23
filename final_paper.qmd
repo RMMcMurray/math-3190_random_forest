@@ -11,6 +11,7 @@ format:
 execute:
   warning: false
   message: false
+  cache: true
 
 header-includes:
   - \setlength{\parindent}{15pt}
@@ -80,7 +81,9 @@ An additional practical advantage of random forests is the availability of out-o
 
 Despite their strong empirical performance, random forests are not without limitations. Their ensemble nature makes them less interpretable than simpler models, and commonly used measures of feature importance can be difficult to interpret or biased in the presence of correlated predictors. Additionally, training a large number of trees can be computationally demanding, particularly for large datasets or high-dimensional problems. Random forests may also struggle when many predictors are irrelevant, and, as noted earlier, they do not extrapolate well beyond the range of the training data.
 
-In summary, random forests build upon the strengths of decision trees while addressing their primary weakness—high variance—through averaging and randomization. By combining bootstrap sampling with random feature selection, they produce a flexible and robust modeling approach that performs well across a wide range of regression and classification problems.
+In summary, random forests build upon the strengths of decision trees while addressing their primary weakness through averaging and randomization. By combining bootstrap sampling with random feature selection, they produce a flexible and robust modeling approach that performs well across a wide range of regression and classification problems. In practice, random forests are particularly well-suited for problems where the underlying relationships are complex, nonlinear, or involve high-order interactions that are difficult to specify in advance. They are also effective in settings with a large number of predictors, including situations where some variables may be irrelevant or noisy. Because they require relatively little tuning and are resistant to overfitting, random forests are often used as a strong baseline model in applied work, but not the final model. 
+
+However, they are most appropriate when interpretability is not the primary concern, as the ensemble nature of the model makes individual predictions difficult to explain. They also perform best when the goal is accurate prediction within the range of the observed data, rather than extrapolation beyond it. As a result, random forests are commonly used in applications such as risk prediction, classification tasks, and exploratory modeling, where predictive performance and robustness are more important than model simplicity or interpretability.
 
 # Regression Example
 
@@ -342,13 +345,13 @@ In contrast to regression, where the goal is to predict a continuous numerical v
 
 ```{r}
 #| label: classification-setup
-library(randomForest) 
+library(randomForest)
 library(caret) |> suppressPackageStartupMessages()
 library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(forcats)
-library(reprtree)
+library(rpart.plot)
 
 data(iris)
 
@@ -387,8 +390,12 @@ The model achieved an Out-of-bag (OOB) error rate of 5.71 percent, meaning that 
 
 ```{r}
 #| label: singular-tree
-#| echo: False
-plot.getTree(rf_model, k = 1)
+#| echo: false
+library(rpart)
+library(rpart.plot)
+
+tree_model <- rpart(Species ~ ., data = iris)
+rpart.plot(tree_model)
 ```
 
 While visualizing a single decision tree does not explain the full behavior of the random forest, it provides useful intuition for how individual trees make predictions. Each tree is trained on a bootstrap sample of the data, and at every split, only a random subset of predictors is considered. From that subset, the algorithm selects the split that best separates the classes according to a criterion such as the Gini index previusly mentioned.
